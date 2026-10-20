@@ -1,0 +1,183 @@
+{
+  "system": {
+    "host-name": "SRX-C1",
+    "root-authentication": {
+      "encrypted-password": "$1$4TkbZDtp$6E8C6Bg7K6gnHR31XnJjl0"
+    },
+    "services": [
+      "ssh"
+    ]
+  },
+  "interfaces": {
+    "ge-0/0/2": {
+      "description": "Network-A - Host-A 10.1.1.2 - trust",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "10.1.1.1/24"
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/3": {
+      "description": "Hub - SRX-C2 internet - untrust",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "10.3.3.1/24"
+            }
+          }
+        }
+      }
+    },
+    "st0": {
+      "description": "Secure tunnel to SRX-B",
+      "unit": {
+        "1": {
+          "family": {
+            "inet": {}
+          }
+        }
+      }
+    }
+  },
+  "routing-options": {
+    "router-id": "1.1.1.1",
+    "static": {
+      "route": {
+        "0.0.0.0/0": {
+          "next-hop": "10.3.3.2"
+        },
+        "10.2.2.0/24": {
+          "next-hop": "st0.1"
+        }
+      }
+    }
+  },
+  "security": {
+    "ike": {
+      "proposal": {
+        "ike-phase1-proposal": {
+          "authentication-method": "pre-shared-keys",
+          "dh-group": "group14",
+          "authentication-algorithm": "sha-256",
+          "encryption-algorithm": "aes-128-cbc",
+          "lifetime-seconds": 28800
+        }
+      },
+      "policy": {
+        "ike-phase1-policy": {
+          "mode": "main",
+          "proposals": [
+            "ike-phase1-proposal"
+          ],
+          "pre-shared-key": {
+            "ascii-text": "Ass45-VPN-key"
+          }
+        }
+      },
+      "gateway": {
+        "gw-to-peer": {
+          "ike-policy": "ike-phase1-policy",
+          "address": "10.4.4.1",
+          "external-interface": "ge-0/0/3.0"
+        }
+      }
+    },
+    "ipsec": {
+      "proposal": {
+        "ipsec-phase2-proposal": {
+          "protocol": "esp",
+          "authentication-algorithm": "hmac-sha-256-128",
+          "encryption-algorithm": "aes-128-cbc",
+          "lifetime-seconds": 3600
+        }
+      },
+      "policy": {
+        "ipsec-phase2-policy": {
+          "perfect-forward-secrecy": {
+            "keys": "group14"
+          },
+          "proposals": [
+            "ipsec-phase2-proposal"
+          ]
+        }
+      },
+      "vpn": {
+        "vpn-to-peer": {
+          "bind-interface": "st0.1",
+          "ike": {
+            "gateway": "gw-to-peer",
+            "ipsec-policy": "ipsec-phase2-policy"
+          },
+          "establish-tunnels": "immediately"
+        }
+      }
+    },
+    "zones": {
+      "security-zone": {
+        "trust": {
+          "host-inbound-traffic": {
+            "system-services": [
+              "ping",
+              "ssh"
+            ]
+          },
+          "interfaces": {
+            "ge-0/0/2.0": true
+          }
+        },
+        "untrust": {
+          "interfaces": {
+            "ge-0/0/3.0": {
+              "host-inbound-traffic": {
+                "system-services": [
+                  "ike",
+                  "ping"
+                ]
+              }
+            }
+          }
+        },
+        "vpn": {
+          "interfaces": {
+            "st0.1": true
+          }
+        }
+      }
+    },
+    "policies": {
+      "from-zone trust to-zone vpn": {
+        "policy": {
+          "trust-to-vpn": {
+            "match": {
+              "source-address": "any",
+              "destination-address": "any",
+              "application": "any"
+            },
+            "then": [
+              "permit"
+            ]
+          }
+        }
+      },
+      "from-zone vpn to-zone trust": {
+        "policy": {
+          "vpn-to-trust": {
+            "match": {
+              "source-address": "any",
+              "destination-address": "any",
+              "application": "any"
+            },
+            "then": [
+              "permit"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

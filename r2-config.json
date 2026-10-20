@@ -1,0 +1,114 @@
+{
+  "system": {
+    "host-name": "SRX-C2",
+    "root-authentication": {
+      "encrypted-password": "$1$iIB5kXWe$ndYfMnY.TygiAYOujEkBH1"
+    },
+    "services": {
+      "ssh": true,
+      "dhcp-local-server": {
+        "group": {
+          "WIRESHARK": {
+            "interface": "ge-0/0/1.0"
+          }
+        }
+      }
+    }
+  },
+  "interfaces": {
+    "ge-0/0/1": {
+      "description": "Hub - SRX-C1 + Host-Wireshark",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "10.3.3.2/24"
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/2": {
+      "description": "SRX-C3",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "10.4.4.2/24"
+            }
+          }
+        }
+      }
+    }
+  },
+  "routing-options": {
+    "router-id": "2.2.2.2"
+  },
+  "security": {
+    "zones": {
+      "security-zone": {
+        "internet": {
+          "host-inbound-traffic": {
+            "system-services": [
+              "ping",
+              "ssh"
+            ]
+          },
+          "interfaces": {
+            "ge-0/0/1.0": {
+              "host-inbound-traffic": {
+                "system-services": [
+                  "dhcp",
+                  "ping",
+                  "ssh"
+                ]
+              }
+            },
+            "ge-0/0/2.0": true
+          }
+        }
+      }
+    },
+    "policies": {
+      "from-zone internet to-zone internet": {
+        "policy": {
+          "allow-internet": {
+            "match": {
+              "source-address": "any",
+              "destination-address": "any",
+              "application": "any"
+            },
+            "then": [
+              "permit"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "access": {
+    "address-assignment": {
+      "pool": {
+        "WIRESHARK": {
+          "family": {
+            "inet": {
+              "network": "10.3.3.0/24",
+              "range": {
+                "HOSTS": {
+                  "low": "10.3.3.10",
+                  "high": "10.3.3.20"
+                }
+              },
+              "dhcp-attributes": {
+                "maximum-lease-time": 3600,
+                "router": [
+                  "10.3.3.2"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
